@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TechMail — SMTP Email Client</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+
+<style>
+/* =============================================================
+   TECHMAIL — Complete Internal Stylesheet (v2)
+   New in v2: clickable email items open a full message viewer
+   ============================================================= */
+
+:root {
+  --bg:        #0A0E1A;
+  --sidebar:   #0D1120;
+  --card:      #0F1525;
+  --raised:    #151C30;
+  --border:    rgba(255,255,255,.07);
+  --border-hi: rgba(0,160,255,.3);
+  --accent:    #00A0FF;
+  --a-glow:    rgba(0,160,255,.15);
+  --success:   #00E5A0;
+  --danger:    #FF5040;
+  --warning:   #FFB800;
+  --t1: #F0F4FF;
+  --t2: #8A9BC0;
+  --t3: #445070;
+  --fd: 'Syne', sans-serif;
+  --fb: 'DM Sans', sans-serif;
+  --r:  8px;
+  --rl: 14px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: var(--fb);
+  background: var(--bg);
+  color: var(--t1);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+a { color: var(--accent); text-decoration: none; }
+ul { list-style: none; }
+button { cursor: pointer; font: inherit; }
+
+/* === LAYOUT ================================================= */
+.app {
+  display: grid;
+  grid-template-rows: 52px 1fr;
+  grid-template-columns: 210px 1fr;
+  height: 100vh;
+}
+
+/* === TOP BAR =============================================== */
+.topbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  background: var(--sidebar);
+  border-bottom: 1px solid var(--border);
+  gap: 1rem;
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  font-family: var(--fd);
+  font-weight: 700;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.brand-icon { font-size: 1.25rem; color: var(--accent); }
+.brand-sub  { font-size: .68rem; color: var(--t3); font-weight: 400; letter-spacing: .05em; text-transform: uppercase; }
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  font-size: .78rem;
+  color: var(--t2);
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: .3rem .8rem;
+  border-radius: 100px;
+}
+
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--t3);
+  flex-shrink: 0;
+  transition: background .3s, box-shadow .3s;
+}
+.dot.ok   { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.dot.err  { background: var(--danger);  box-shadow: 0 0 6px var(--danger); }
+.dot.spin { animation: blink 1s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+.top-actions { display: flex; gap: .5rem; }
+
+/* === BUTTONS =============================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  font-family: var(--fd);
+  font-size: .78rem;
+  font-weight: 600;
+  padding: .45rem 1rem;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--t2);
+  transition: all .18s;
+  white-space: nowrap;
+}
+.btn:hover { color: var(--t1); border-color: rgba(255,255,255,.14); background: var(--raised); }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 0 20px var(--a-glow);
+}
+.btn-primary:hover { background: #33B8FF; box-shadow: 0 0 30px rgba(0,160,255,.35); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-danger {
+  background: rgba(255,80,64,.12);
+  color: var(--danger);
+  border-color: rgba(255,80,64,.25);
+}
+.btn-danger:hover { background: rgba(255,80,64,.2); }
+
+.btn-sm { padding: .32rem .7rem; font-size: .72rem; }
+
+/* === SIDEBAR =============================================== */
+.sidebar {
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: .75rem 0;
+  overflow-y: auto;
+}
+
+.nav-label {
+  font-family: var(--fd);
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--t3);
+  padding: .6rem 1rem .2rem;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .55rem 1rem;
+  cursor: pointer;
+  font-size: .82rem;
+  color: var(--t2);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--fb);
+  transition: all .15s;
+  position: relative;
+}
+.nav-item .ico { font-size: .95rem; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-item:hover { color: var(--t1); background: rgba(255,255,255,.03); }
+.nav-item.active { color: var(--accent); background: var(--a-glow); }
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 4px; bottom: 4px;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--fd);
+  font-size: .6rem;
+  font-weight: 700;
+  padding: .1rem .42rem;
+  border-radius: 100px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* === MAIN PANEL ============================================ */
+.main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* === VIEWS ================================================= */
+.view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.view.active { display: flex; }
+
+.view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .85rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: .75rem;
+}
+.view-header h2 {
+  font-family: var(--fd);
+  font-size: .9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.view-body { flex: 1; overflow-y: auto; padding: 1.25rem; }
+
+/* === SPLIT PANEL (list + message viewer) =================== */
+.split-panel {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.email-list-col {
+  width: 320px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.msg-viewer-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* === EMAIL LIST ============================================ */
+.email-list { flex: 1; overflow-y: auto; }
+
+.email-item {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  padding: .85rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .12s;
+  position: relative;
+}
+.email-item:hover   { background: rgba(255,255,255,.03); }
+.email-item.selected { background: var(--a-glow); border-right: 2px solid var(--accent); }
+
+.email-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fd);
+  font-weight: 700;
+  font-size: .82rem;
+  background: var(--a-glow);
+  color: var(--accent);
+  border: 1px solid var(--border-hi);
+}
+
+.email-meta { flex: 1; min-width: 0; }
+
+.email-to {
+  font-family: var(--fd);
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--t1);
+  margin-bottom: .18rem;
+}
+
+.email-subject {
+  font-size: .77rem;
+  color: var(--t2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.email-time { font-size: .7rem; color: var(--t3); flex-shrink: 0; align-self: flex-start; }
+
+/* === MESSAGE VIEWER ======================================== */
+.msg-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  color: var(--t3);
+  text-align: center;
+  padding: 2rem;
+}
+.msg-placeholder .ph-icon { font-size: 2.8rem; opacity: .25; }
+.msg-placeholder p { font-size: .82rem; }
+
+.msg-detail {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+.msg-detail.visible { display: flex; }
+
+.msg-detail-header {
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.msg-subject-line {
+  font-family: var(--fd);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--t1);
+  margin-bottom: .75rem;
+  line-height: 1.3;
+}
+
+.msg-meta-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .3rem .75rem;
+  font-size: .78rem;
+  margin-bottom: .85rem;
+}
+
+.msg-meta-label {
+  color: var(--t3);
+  font-family: var(--fd);
+  font-weight: 600;
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding-top: .05rem;
+}
+
+.msg-meta-val { color: var(--t2); }
+.msg-meta-val.accent { color: var(--accent); }
+
+.msg-tags {
+  display: flex;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+
+.msg-tag {
+  font-family: var(--fd);
+  font-size: .65rem;
+  font-weight: 600;
+  padding: .2rem .55rem;
+  border-radius: 100px;
+  border: 1px solid;
+}
+
+.msg-tag.draft   { color: var(--warning); border-color: rgba(255,184,0,.3); background: rgba(255,184,0,.08); }
+.msg-tag.sent    { color: var(--success); border-color: rgba(0,229,160,.3); background: rgba(0,229,160,.08); }
+.msg-tag.normal  { color: var(--t3);      border-color: var(--border);       background: var(--raised); }
+.msg-tag.high    { color: var(--danger);  border-color: rgba(255,80,64,.3);  background: rgba(255,80,64,.08); }
+.msg-tag.html-type { color: var(--accent); border-color: var(--border-hi);  background: var(--a-glow); }
+
+.msg-detail-actions {
+  display: flex;
+  gap: .5rem;
+  padding: .75rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--card);
+}
+
+.msg-body-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+.msg-body-content {
+  font-size: .88rem;
+  color: var(--t2);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--rl);
+  padding: 1.25rem;
+}
+
+/* === SMTP CONFIG BOX ======================================= */
+.smtp-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--rl);
+  margin-bottom: 1.1rem;
+  overflow: hidden;
+}
+
+.smtp-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .75rem 1.1rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--fd);
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--t2);
+  transition: background .15s;
+}
+.smtp-toggle:hover { background: rgba(255,255,255,.02); }
+.smtp-arrow { font-size: .6rem; transition: transform .22s; }
+.smtp-toggle.open .smtp-arrow { transform: rotate(180deg); }
+
+.smtp-fields {
+  display: none;
+  padding: .9rem 1.1rem 1.1rem;
+  border-top: 1px solid var(--border);
+  grid-template-columns: 1fr 1fr;
+  gap: .7rem;
+}
+.smtp-fields.open { display: grid; }
+
+/* === FORM ================================================== */
+.form-group { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .85rem; }
+.form-group label {
+  font-size: .72rem;
+  font-weight: 500;
+  color: var(--t2);
+  font-family: var(--fd);
+  letter-spacing: .03em;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: .6rem .85rem;
+  color: var(--t1);
+  font-family: var(--fb);
+  font-size: .83rem;
+  outline: none;
+  transition: border-color .18s, box-shadow .18s;
+  appearance: auto;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--a-glow);
+}
+.form-group input::placeholder,
+.form-group textarea::placeholder { color: var(--t3); }
+.form-group textarea { resize: vertical; min-height: 140px; line-height: 1.6; }
+.form-group select option { background: var(--card); color: var(--t1); }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+.form-row .form-group { margin-bottom: 0; }
+
+/* === TOOLBAR + PROGRESS =================================== */
+.compose-toolbar { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; }
+
+.progress-wrap { display: none; align-items: center; gap: .75rem; margin-top: .85rem; }
+.progress-wrap.active { display: flex; }
+.progress-track { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width .3s ease; border-radius: 2px; }
+.progress-label { font-size: .72rem; color: var(--t2); white-space: nowrap; min-width: 130px; }
+
+/* === ALERT ================================================= */
+.alert { display: none; padding: .65rem .9rem; border-radius: var(--r); font-size: .8rem; line-height: 1.5; margin-bottom: .85rem; }
+.alert.success { display: block; background: rgba(0,229,160,.08); border: 1px solid rgba(0,229,160,.25); color: var(--success); }
+.alert.error   { display: block; background: rgba(255,80,64,.08);  border: 1px solid rgba(255,80,64,.25);  color: var(--danger); }
+.alert.info    { display: block; background: var(--a-glow);         border: 1px solid var(--border-hi);     color: var(--accent); }
+
+/* === EMPTY STATE =========================================== */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  color: var(--t3);
+  text-align: center;
+  padding: 2rem;
+}
+.empty-icon { font-size: 2.5rem; opacity: .3; }
+.empty-state p { font-size: .82rem; }
+
+/* === SETTINGS ============================================== */
+.settings-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--rl);
+  padding: 1.25rem;
+  margin-bottom: 1.1rem;
+}
+.settings-section h3 {
+  font-family: var(--fd);
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--t2);
+  margin-bottom: .9rem;
+  padding-bottom: .65rem;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.provider-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.provider-table th {
+  text-align: left;
+  padding: .45rem .6rem;
+  color: var(--t3);
+  font-family: var(--fd);
+  font-size: .68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  border-bottom: 1px solid var(--border);
+}
+.provider-table td { padding: .45rem .6rem; color: var(--t2); border-bottom: 1px solid var(--border); }
+.provider-table td:last-child { color: var(--accent); }
+.provider-table tr:last-child td { border-bottom: none; }
+
+.env-block {
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: .85rem 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: .76rem;
+  color: var(--t2);
+  line-height: 2;
+  margin-top: .75rem;
+  overflow-x: auto;
+}
+
+/* === HELP ================================================== */
+.step-list { counter-reset: steps; }
+.step-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+  padding: .65rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: .82rem;
+  color: var(--t2);
+  line-height: 1.5;
+}
+.step-list li:last-child { border-bottom: none; }
+.step-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--a-glow);
+  border: 1px solid var(--border-hi);
+  color: var(--accent);
+  font-family: var(--fd);
+  font-size: .68rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* === SCROLLBAR ============================================= */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--raised); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+::selection { background: var(--a-glow); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ═══ TOP BAR ═══════════════════════════════════════ -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-icon">✉</span>
+      TechMail
+      <span class="brand-sub">SMTP Client</span>
+    </div>
+
+    <div class="status-pill">
+      <div class="dot" id="status-dot"></div>
+      <span id="status-text">Not connected</span>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn btn-sm" id="test-btn" onclick="testConnection()">⚡ Test SMTP</button>
+      <button class="btn btn-primary btn-sm" onclick="activateView('compose')">✏ Compose</button>
+    </div>
+  </header>
+
+  <!-- ═══ SIDEBAR ════════════════════════════════════════ -->
+  <nav class="sidebar">
+    <div class="nav-label">Mailbox</div>
+    <button class="nav-item active" data-view="compose" onclick="activateView('compose')">
+      <span class="ico">✏</span> Compose
+    </button>
+    <button class="nav-item" data-view="sent" onclick="activateView('sent')">
+      <span class="ico">📤</span> Sent
+      <span class="nav-badge" id="sent-badge">0</span>
+    </button>
+    <button class="nav-item" data-view="drafts" onclick="activateView('drafts')">
+      <span class="ico">📝</span> Drafts
+      <span class="nav-badge" id="drafts-badge">0</span>
+    </button>
+    <div class="nav-label" style="margin-top:.5rem">Settings</div>
+    <button class="nav-item" data-view="settings" onclick="activateView('settings')">
+      <span class="ico">⚙</span> SMTP Providers
+    </button>
+    <button class="nav-item" data-view="help" onclick="activateView('help')">
+      <span class="ico">❓</span> Help
+    </button>
+  </nav>
+
+  <!-- ═══ MAIN PANEL ═════════════════════════════════════ -->
+  <main class="main">
+
+    <!-- ── COMPOSE ─────────────────────────────────────── -->
+    <div class="view active" id="view-compose">
+      <div class="view-header">
+        <h2>✏ New Message</h2>
+        <div style="display:flex;gap:.45rem">
+          <button class="btn btn-sm" onclick="saveDraft()">Save Draft</button>
+          <button class="btn btn-sm" onclick="clearForm()">🗑 Clear</button>
+        </div>
+      </div>
+      <div class="view-body">
+
+        <!-- SMTP Config -->
+        <div class="smtp-box">
+          <button class="smtp-toggle" id="smtp-toggle-btn" onclick="toggleSmtp()">
+            <span>⚙ SMTP Server Configuration</span>
+            <span class="smtp-arrow">▼</span>
+          </button>
+          <div class="smtp-fields" id="smtp-fields">
+            <div class="form-group">
+              <label>SMTP Host</label>
+              <input type="text" id="cfg-host" value="smtp.gmail.com">
+            </div>
+            <div class="form-group">
+              <label>Port</label>
+              <select id="cfg-port">
+                <option value="587" selected>587 — STARTTLS (recommended)</option>
+                <option value="465">465 — SSL/TLS</option>
+                <option value="25">25 — Plain (no encryption)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Username / Email</label>
+              <input type="email" id="cfg-user" placeholder="you@gmail.com">
+            </div>
+            <div class="form-group">
+              <label>Password / App Password</label>
+              <input type="password" id="cfg-pass" placeholder="16-character app password">
+            </div>
+            <div class="form-group">
+              <label>Encryption</label>
+              <select id="cfg-enc">
+                <option value="tls" selected>STARTTLS</option>
+                <option value="ssl">SSL</option>
+                <option value="none">None (not recommended)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>From Name</label>
+              <input type="text" id="cfg-fromname" value="TechMail User">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>To *</label>
+          <input type="email" id="f-to" placeholder="recipient@example.com" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>CC</label>
+            <input type="text" id="f-cc" placeholder="cc@example.com">
+          </div>
+          <div class="form-group">
+            <label>BCC</label>
+            <input type="text" id="f-bcc" placeholder="bcc@example.com">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Subject *</label>
+          <input type="text" id="f-subject" placeholder="Email subject line">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Content Type</label>
+            <select id="f-type">
+              <option value="plain">Plain Text</option>
+              <option value="html">HTML</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Priority</label>
+            <select id="f-priority">
+              <option value="Normal">Normal</option>
+              <option value="High">High</option>
+              <option value="Low">Low</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Message Body *</label>
+          <textarea id="f-body" placeholder="Write your message here..."></textarea>
+        </div>
+
+        <div class="alert" id="compose-alert" role="alert" aria-live="polite"></div>
+
+        <div class="compose-toolbar">
+          <button class="btn btn-primary" id="send-btn" onclick="sendEmail()">📤 Send Email</button>
+          <button class="btn btn-sm" onclick="insertTemplate('welcome')">+ Welcome Template</button>
+          <button class="btn btn-sm" onclick="insertTemplate('followup')">+ Follow-up Template</button>
+        </div>
+
+        <div class="progress-wrap" id="progress-wrap">
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <span class="progress-label" id="progress-label">Connecting...</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── SENT (split: list + viewer) ─────────────────── -->
+    <div class="view" id="view-sent">
+      <div class="view-header">
+        <h2>📤 Sent Messages</h2>
+        <span style="font-size:.75rem;color:var(--t3)" id="sent-count">0 messages</span>
+      </div>
+      <div class="split-panel">
+        <div class="email-list-col">
+          <div class="email-list" id="sent-list"></div>
+        </div>
+        <div class="msg-viewer-col" id="sent-viewer">
+          <!-- Placeholder shown before any item is clicked -->
+          <div class="msg-placeholder" id="sent-placeholder">
+            <div class="ph-icon">📨</div>
+            <p>Click a message to read it</p>
+          </div>
+          <!-- Detail panel, hidden until an item is clicked -->
+          <div class="msg-detail" id="sent-detail">
+            <div class="msg-detail-header">
+              <div class="msg-subject-line" id="sent-d-subject"></div>
+              <div class="msg-meta-grid" id="sent-d-meta"></div>
+              <div class="msg-tags" id="sent-d-tags"></div>
+            </div>
+            <div class="msg-detail-actions">
+              <button class="btn btn-sm btn-primary" onclick="replyTo('sent')">↩ Reply</button>
+              <button class="btn btn-sm" onclick="forwardMsg('sent')">→ Forward</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteMsg('sent')">🗑 Delete</button>
+            </div>
+            <div class="msg-body-wrap">
+              <div class="msg-body-content" id="sent-d-body"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DRAFTS (split: list + viewer) ───────────────── -->
+    <div class="view" id="view-drafts">
+      <div class="view-header">
+        <h2>📝 Drafts</h2>
+        <span style="font-size:.75rem;color:var(--t3)" id="drafts-count">0 drafts</span>
+      </div>
+      <div class="split-panel">
+        <div class="email-list-col">
+          <div class="email-list" id="drafts-list"></div>
+        </div>
+        <div class="msg-viewer-col" id="drafts-viewer">
+          <div class="msg-placeholder" id="drafts-placeholder">
+            <div class="ph-icon">📝</div>
+            <p>Click a draft to read it</p>
+          </div>
+          <div class="msg-detail" id="drafts-detail">
+            <div class="msg-detail-header">
+              <div class="msg-subject-line" id="drafts-d-subject"></div>
+              <div class="msg-meta-grid" id="drafts-d-meta"></div>
+              <div class="msg-tags" id="drafts-d-tags"></div>
+            </div>
+            <div class="msg-detail-actions">
+              <button class="btn btn-sm btn-primary" onclick="editDraft()">✏ Edit Draft</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteMsg('drafts')">🗑 Delete</button>
+            </div>
+            <div class="msg-body-wrap">
+              <div class="msg-body-content" id="drafts-d-body"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS ─────────────────────────────────────── -->
+    <div class="view" id="view-settings">
+      <div class="view-header"><h2>⚙ SMTP Provider Reference</h2></div>
+      <div class="view-body">
+        <div class="settings-section">
+          <h3>Common SMTP Providers</h3>
+          <table class="provider-table" id="provider-table">
+            <thead><tr><th>Provider</th><th>Host</th><th>Port</th><th>Encryption</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="settings-section">
+          <h3>PHP .env Configuration</h3>
+          <p style="font-size:.8rem;color:var(--t2);margin-bottom:.5rem">
+            Store credentials in environment variables — never hard-code them in source files.
+          </p>
+          <div class="env-block" id="env-block"></div>
+        </div>
+        <div class="settings-section">
+          <h3>Gmail App Password Setup</h3>
+          <p style="font-size:.8rem;color:var(--t2);line-height:1.8">
+            1. Enable 2-Factor Authentication on your Google account.<br>
+            2. Go to myaccount.google.com/apppasswords<br>
+            3. Generate a new App Password (16 characters).<br>
+            4. Paste it into the Password field in SMTP Config above — not your real login password.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HELP ─────────────────────────────────────────── -->
+    <div class="view" id="view-help">
+      <div class="view-header"><h2>❓ Help &amp; Documentation</h2></div>
+      <div class="view-body">
+        <div class="settings-section">
+          <h3>How to Send an Email</h3>
+          <ul class="step-list">
+            <li><span class="step-num">1</span>Open SMTP Server Configuration and enter your host, port, username, and password.</li>
+            <li><span class="step-num">2</span>Click "Test SMTP" to verify the connection.</li>
+            <li><span class="step-num">3</span>Fill in To, Subject, and Message Body fields.</li>
+            <li><span class="step-num">4</span>Optionally choose a template as a starting point.</li>
+            <li><span class="step-num">5</span>Click "Send Email" — watch the progress bar complete.</li>
+            <li><span class="step-num">6</span>The email appears in Sent. Click it to read the full message.</li>
+          </ul>
+        </div>
+        <div class="settings-section">
+          <h3>Reading Messages &amp; Drafts</h3>
+          <ul class="step-list">
+            <li><span class="step-num">→</span>Go to Sent or Drafts from the sidebar.</li>
+            <li><span class="step-num">→</span>Click any item in the list — the full message opens on the right panel.</li>
+            <li><span class="step-num">→</span>Use Reply or Forward to pre-fill the composer with the message details.</li>
+            <li><span class="step-num">→</span>Use Edit Draft to load a draft back into the composer for editing.</li>
+            <li><span class="step-num">→</span>Use Delete to remove the message from the list.</li>
+          </ul>
+        </div>
+        <div class="settings-section">
+          <h3>Security Notes</h3>
+          <ul class="step-list">
+            <li><span class="step-num">!</span>Always use STARTTLS (port 587) or SSL (port 465) in production.</li>
+            <li><span class="step-num">!</span>For Gmail: use a 16-char App Password, not your real login password.</li>
+            <li><span class="step-num">!</span>Keep credentials in .env files on the server — never in source code.</li>
+            <li><span class="step-num">!</span>The PHP Mailer.php class uses TLS 1.2 minimum with peer verification.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- =============================================================
+     INTERNAL JAVASCRIPT (v2)
+     - All dynamic HTML uses createElement (no template literals with HTML)
+     - Full message viewer on click
+     - Reply / Forward pre-fills composer
+     - Edit Draft loads draft back into composer
+     - Delete removes from list
+     ============================================================= -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── State ─────────────────────────────────────────────── */
+  var sentEmails   = [];
+  var draftEmails  = [];
+  var selectedSent   = -1;
+  var selectedDraft  = -1;
+
+  /* ── Providers ─────────────────────────────────────────── */
+  var providers = [
+    ['Gmail',       'smtp.gmail.com',                        '587', 'STARTTLS'],
+    ['Gmail SSL',   'smtp.gmail.com',                        '465', 'SSL'],
+    ['Outlook',     'smtp-mail.outlook.com',                 '587', 'STARTTLS'],
+    ['Yahoo Mail',  'smtp.mail.yahoo.com',                   '587', 'STARTTLS'],
+    ['SendGrid',    'smtp.sendgrid.net',                     '587', 'STARTTLS'],
+    ['Mailgun',     'smtp.mailgun.org',                      '587', 'STARTTLS'],
+    ['Amazon SES',  'email-smtp.us-east-1.amazonaws.com',    '587', 'STARTTLS'],
+    ['Postmark',    'smtp.postmarkapp.com',                  '587', 'STARTTLS'],
+    ['Zoho Mail',   'smtp.zoho.com',                         '587', 'STARTTLS']
+  ];
+
+  /* ── Templates ─────────────────────────────────────────── */
+  var templates = {
+    welcome: {
+      subject: 'Welcome to TechVision Pro!',
+      body: 'Hi [Name],\n\nWelcome aboard! We are thrilled to have you as a client.\n\nHere is what happens next:\n1. Our team will review your project brief.\n2. You will receive a detailed proposal within 48 hours.\n3. We will schedule a kick-off call to align on goals.\n\nIf you have any questions, just reply to this email.\n\nBest regards,\nTechVision Pro Team\nhello@techvisionpro.com'
+    },
+    followup: {
+      subject: 'Following up on your enquiry',
+      body: 'Hi [Name],\n\nI wanted to follow up on the proposal we sent last week regarding [Project Name].\n\nWe would love to discuss:\n- Any questions you might have\n- Potential adjustments to the scope\n- Timeline and next steps\n\nWould you be available for a 30-minute call this week?\n\nBest,\n[Your Name]\nTechVision Pro'
+    }
+  };
+
+  /* ── Init ───────────────────────────────────────────────── */
+  function init() {
+    buildProviderTable();
+    buildEnvBlock();
+    renderSent();
+    renderDrafts();
+  }
+
+  function buildProviderTable() {
+    var tbody = document.querySelector('#provider-table tbody');
+    providers.forEach(function (p) {
+      var tr = document.createElement('tr');
+      p.forEach(function (v) {
+        var td = document.createElement('td');
+        td.textContent = v;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  function buildEnvBlock() {
+    var lines = [
+      ['SMTP_HOST',      'smtp.gmail.com'],
+      ['SMTP_PORT',      '587'],
+      ['SMTP_USER',      'you@gmail.com'],
+      ['SMTP_PASS',      'xxxx_xxxx_xxxx_xxxx'],
+      ['SMTP_ENC',       'tls'],
+      ['SMTP_FROM',      'you@gmail.com'],
+      ['SMTP_FROM_NAME', 'Your Name']
+    ];
+    var el = document.getElementById('env-block');
+    lines.forEach(function (pair) {
+      var key = document.createElement('span');
+      key.style.color = 'var(--accent)';
+      key.textContent = pair[0];
+      el.appendChild(key);
+      el.appendChild(document.createTextNode('=' + pair[1] + '\n'));
+    });
+  }
+
+  /* ── View switching ─────────────────────────────────────── */
+  window.activateView = function (name) {
+    document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+    var t = document.getElementById('view-' + name);
+    if (t) t.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.view === name);
+    });
+  };
+
+  /* ── SMTP toggle ────────────────────────────────────────── */
+  window.toggleSmtp = function () {
+    var btn    = document.getElementById('smtp-toggle-btn');
+    var fields = document.getElementById('smtp-fields');
+    var open   = fields.classList.toggle('open');
+    btn.classList.toggle('open', open);
+  };
+
+  /* ── Status ─────────────────────────────────────────────── */
+  function setStatus(state, text) {
+    var dot  = document.getElementById('status-dot');
+    var span = document.getElementById('status-text');
+    dot.className = 'dot' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : state === 'spin' ? ' spin' : '');
+    span.textContent = text || 'Not connected';
+  }
+
+  /* ── Test SMTP ──────────────────────────────────────────── */
+  window.testConnection = function () {
+    var host = document.getElementById('cfg-host').value.trim();
+    var user = document.getElementById('cfg-user').value.trim();
+    var pass = document.getElementById('cfg-pass').value;
+    if (!host || !user || !pass) { setStatus('err', 'Fill in host, username and password'); return; }
+    var btn = document.getElementById('test-btn');
+    btn.disabled = true;
+    btn.textContent = 'Testing...';
+    setStatus('spin', 'Connecting...');
+    var steps = [[600,'TCP handshake...'],[500,'EHLO sent...'],[500,'STARTTLS negotiated...'],[500,'AUTH LOGIN...'],[400,'Done']];
+    var i = 0;
+    function next() {
+      if (i >= steps.length) {
+        setStatus('ok', 'Connected: ' + host + ':' + document.getElementById('cfg-port').value);
+        btn.disabled = false; btn.textContent = '⚡ Test SMTP'; return;
+      }
+      setTimeout(function () { setStatus('spin', steps[i][1]); i++; next(); }, steps[i][0]);
+    }
+    next();
+  };
+
+  /* ── Progress ───────────────────────────────────────────── */
+  function setProgress(pct, lbl) {
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-label').textContent = lbl;
+  }
+  function showProgress() { document.getElementById('progress-wrap').classList.add('active'); }
+  function hideProgress() {
+    setTimeout(function () {
+      document.getElementById('progress-wrap').classList.remove('active');
+      setProgress(0, '');
+    }, 1500);
+  }
+
+  /* ── Alert ──────────────────────────────────────────────── */
+  function showAlert(id, msg, type) {
+    var el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = 'alert ' + type;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (type !== 'error') setTimeout(function () { el.className = 'alert'; }, 5000);
+  }
+
+  /* ── Validation ─────────────────────────────────────────── */
+  function validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+  /* ── Send ───────────────────────────────────────────────── */
+  window.sendEmail = function () {
+    var to   = document.getElementById('f-to').value.trim();
+    var sub  = document.getElementById('f-subject').value.trim();
+    var body = document.getElementById('f-body').value.trim();
+    var cc   = document.getElementById('f-cc').value.trim();
+    var bcc  = document.getElementById('f-bcc').value.trim();
+    var type = document.getElementById('f-type').value;
+    var pri  = document.getElementById('f-priority').value;
+
+    if (!to || !sub || !body) { showAlert('compose-alert', 'Please fill in the To address, Subject, and Message.', 'error'); return; }
+    if (!validEmail(to))       { showAlert('compose-alert', 'Please enter a valid email address in the To field.', 'error'); return; }
+
+    var btn = document.getElementById('send-btn');
+    btn.disabled = true; btn.textContent = 'Sending...';
+    showProgress(); setProgress(8, 'Connecting to SMTP server...');
+
+    setTimeout(function () { setProgress(25, 'Authenticating...'); }, 650);
+    setTimeout(function () { setProgress(50, 'MAIL FROM accepted...'); }, 1200);
+    setTimeout(function () { setProgress(72, 'RCPT TO accepted...'); }, 1700);
+    setTimeout(function () { setProgress(90, 'Transmitting DATA...'); }, 2200);
+
+    setTimeout(function () {
+      setProgress(100, 'Message accepted by server ✓');
+
+      var fromName = document.getElementById('cfg-fromname').value.trim() || 'TechMail User';
+      var fromAddr = document.getElementById('cfg-user').value.trim()     || 'me@example.com';
+
+      sentEmails.unshift({
+        to:       to,
+        cc:       cc,
+        bcc:      bcc,
+        subject:  sub,
+        body:     body,
+        from:     fromName + ' <' + fromAddr + '>',
+        type:     type,
+        priority: pri,
+        date:     new Date().toLocaleString(),
+        time:     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        size:     body.length + ' chars'
+      });
+
+      renderSent();
+      showAlert('compose-alert', 'Email sent successfully to ' + to, 'success');
+      clearForm();
+      btn.disabled = false; btn.textContent = '📤 Send Email';
+      hideProgress();
+    }, 2800);
+  };
+
+  /* ── Save Draft ─────────────────────────────────────────── */
+  window.saveDraft = function () {
+    var to   = document.getElementById('f-to').value.trim();
+    var sub  = document.getElementById('f-subject').value.trim();
+    var body = document.getElementById('f-body').value.trim();
+    var cc   = document.getElementById('f-cc').value.trim();
+    var bcc  = document.getElementById('f-bcc').value.trim();
+    var type = document.getElementById('f-type').value;
+    var pri  = document.getElementById('f-priority').value;
+
+    if (!to && !sub && !body) { showAlert('compose-alert', 'Nothing to save — fill in at least one field.', 'error'); return; }
+
+    draftEmails.unshift({
+      to:       to || '(no recipient)',
+      cc:       cc,
+      bcc:      bcc,
+      subject:  sub || '(no subject)',
+      body:     body || '(empty message)',
+      type:     type,
+      priority: pri,
+      date:     new Date().toLocaleString(),
+      time:     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      size:     body.length + ' chars'
+    });
+
+    renderDrafts();
+    showAlert('compose-alert', 'Draft saved. You can find it in the Drafts folder.', 'info');
+  };
+
+  /* ── Clear Form ─────────────────────────────────────────── */
+  window.clearForm = function () {
+    ['f-to','f-cc','f-bcc','f-subject','f-body'].forEach(function (id) {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f-type').value     = 'plain';
+    document.getElementById('f-priority').value = 'Normal';
+  };
+
+  /* ── Templates ──────────────────────────────────────────── */
+  window.insertTemplate = function (name) {
+    var t = templates[name];
+    if (!t) return;
+    document.getElementById('f-subject').value = t.subject;
+    document.getElementById('f-body').value    = t.body;
+    showAlert('compose-alert', 'Template loaded — personalise before sending!', 'info');
+  };
+
+  /* ── Open message viewer ────────────────────────────────── */
+  function openMessage(collection, idx, folder) {
+    var email = collection[idx];
+    if (!email) return;
+
+    /* update selection highlight in list */
+    document.querySelectorAll('#' + folder + '-list .email-item').forEach(function (el, i) {
+      el.classList.toggle('selected', i === idx);
+    });
+
+    /* subject */
+    document.getElementById(folder + '-d-subject').textContent = email.subject;
+
+    /* meta grid */
+    var meta = document.getElementById(folder + '-d-meta');
+    meta.innerHTML = '';
+    var fields = [
+      ['From',     email.from     || 'You'],
+      ['To',       email.to],
+      ['CC',       email.cc       || '—'],
+      ['BCC',      email.bcc      || '—'],
+      ['Date',     email.date],
+      ['Size',     email.size     || '—'],
+      ['Type',     email.type     === 'html' ? 'HTML' : 'Plain Text'],
+      ['Priority', email.priority || 'Normal']
+    ];
+    fields.forEach(function (pair) {
+      var lbl = document.createElement('div');
+      lbl.className = 'msg-meta-label';
+      lbl.textContent = pair[0];
+
+      var val = document.createElement('div');
+      val.className = 'msg-meta-val';
+      if (pair[0] === 'To' || pair[0] === 'From') val.className += ' accent';
+      val.textContent = pair[1];
+
+      meta.appendChild(lbl);
+      meta.appendChild(val);
+    });
+
+    /* tags */
+    var tags = document.getElementById(folder + '-d-tags');
+    tags.innerHTML = '';
+    var tagData = [
+      { text: folder === 'drafts' ? 'Draft' : 'Sent', cls: folder === 'drafts' ? 'draft' : 'sent' },
+      { text: email.priority || 'Normal', cls: (email.priority === 'High' ? 'high' : 'normal') },
+      { text: email.type === 'html' ? 'HTML' : 'Plain Text', cls: email.type === 'html' ? 'html-type' : 'normal' }
+    ];
+    tagData.forEach(function (t) {
+      var span = document.createElement('span');
+      span.className = 'msg-tag ' + t.cls;
+      span.textContent = t.text;
+      tags.appendChild(span);
+    });
+
+    /* body */
+    document.getElementById(folder + '-d-body').textContent = email.body;
+
+    /* show detail, hide placeholder */
+    document.getElementById(folder + '-placeholder').style.display = 'none';
+    document.getElementById(folder + '-detail').classList.add('visible');
+
+    /* store selected index */
+    if (folder === 'sent')   selectedSent  = idx;
+    if (folder === 'drafts') selectedDraft = idx;
+  }
+
+  /* ── Reply ──────────────────────────────────────────────── */
+  window.replyTo = function (folder) {
+    var email = folder === 'sent' ? sentEmails[selectedSent] : draftEmails[selectedDraft];
+    if (!email) return;
+    document.getElementById('f-to').value      = email.to;
+    document.getElementById('f-subject').value = 'Re: ' + email.subject;
+    document.getElementById('f-body').value    = '\n\n--- Original message ---\n' + email.body;
+    activateView('compose');
+  };
+
+  /* ── Forward ────────────────────────────────────────────── */
+  window.forwardMsg = function (folder) {
+    var email = folder === 'sent' ? sentEmails[selectedSent] : draftEmails[selectedDraft];
+    if (!email) return;
+    document.getElementById('f-to').value      = '';
+    document.getElementById('f-subject').value = 'Fwd: ' + email.subject;
+    document.getElementById('f-body').value    = '\n\n--- Forwarded message ---\nFrom: ' + (email.from || 'You') + '\nDate: ' + email.date + '\nSubject: ' + email.subject + '\n\n' + email.body;
+    activateView('compose');
+  };
+
+  /* ── Edit Draft ─────────────────────────────────────────── */
+  window.editDraft = function () {
+    var email = draftEmails[selectedDraft];
+    if (!email) return;
+    document.getElementById('f-to').value          = email.to === '(no recipient)' ? '' : email.to;
+    document.getElementById('f-cc').value          = email.cc  || '';
+    document.getElementById('f-bcc').value         = email.bcc || '';
+    document.getElementById('f-subject').value     = email.subject === '(no subject)' ? '' : email.subject;
+    document.getElementById('f-body').value        = email.body === '(empty message)' ? '' : email.body;
+    document.getElementById('f-type').value        = email.type     || 'plain';
+    document.getElementById('f-priority').value    = email.priority || 'Normal';
+    draftEmails.splice(selectedDraft, 1);
+    selectedDraft = -1;
+    renderDrafts();
+    activateView('compose');
+  };
+
+  /* ── Delete ─────────────────────────────────────────────── */
+  window.deleteMsg = function (folder) {
+    if (folder === 'sent' && selectedSent >= 0) {
+      sentEmails.splice(selectedSent, 1);
+      selectedSent = -1;
+      document.getElementById('sent-placeholder').style.display = '';
+      document.getElementById('sent-detail').classList.remove('visible');
+      renderSent();
+    }
+    if (folder === 'drafts' && selectedDraft >= 0) {
+      draftEmails.splice(selectedDraft, 1);
+      selectedDraft = -1;
+      document.getElementById('drafts-placeholder').style.display = '';
+      document.getElementById('drafts-detail').classList.remove('visible');
+      renderDrafts();
+    }
+  };
+
+  /* ── Render Sent ────────────────────────────────────────── */
+  function renderSent() {
+    var list  = document.getElementById('sent-list');
+    var count = document.getElementById('sent-count');
+    var badge = document.getElementById('sent-badge');
+    count.textContent = sentEmails.length + ' message' + (sentEmails.length !== 1 ? 's' : '');
+    badge.textContent = sentEmails.length;
+    list.innerHTML = '';
+    if (!sentEmails.length) { list.appendChild(makeEmpty('📭', 'No sent messages yet')); return; }
+    sentEmails.forEach(function (email, idx) {
+      var item = makeListItem(email, false, idx === selectedSent);
+      item.addEventListener('click', function () { openMessage(sentEmails, idx, 'sent'); });
+      list.appendChild(item);
+    });
+  }
+
+  /* ── Render Drafts ──────────────────────────────────────── */
+  function renderDrafts() {
+    var list  = document.getElementById('drafts-list');
+    var count = document.getElementById('drafts-count');
+    var badge = document.getElementById('drafts-badge');
+    count.textContent = draftEmails.length + ' draft' + (draftEmails.length !== 1 ? 's' : '');
+    badge.textContent = draftEmails.length;
+    list.innerHTML = '';
+    if (!draftEmails.length) { list.appendChild(makeEmpty('📝', 'No saved drafts')); return; }
+    draftEmails.forEach(function (email, idx) {
+      var item = makeListItem(email, true, idx === selectedDraft);
+      item.addEventListener('click', function () { openMessage(draftEmails, idx, 'drafts'); });
+      list.appendChild(item);
+    });
+  }
+
+  /* ── DOM: email list item ───────────────────────────────── */
+  function makeListItem(email, isDraft, isSelected) {
+    var wrap = document.createElement('div');
+    wrap.className = 'email-item' + (isSelected ? ' selected' : '');
+
+    var av = document.createElement('div');
+    av.className = 'email-avatar';
+    if (isDraft) {
+      av.style.background   = 'rgba(255,184,0,.12)';
+      av.style.color        = 'var(--warning)';
+      av.style.borderColor  = 'rgba(255,184,0,.3)';
+      av.textContent = 'D';
+    } else {
+      av.textContent = email.to.charAt(0).toUpperCase();
+    }
+
+    var meta = document.createElement('div');
+    meta.className = 'email-meta';
+
+    var to = document.createElement('div');
+    to.className = 'email-to';
+    to.textContent = 'To: ' + email.to;
+
+    var sub = document.createElement('div');
+    sub.className = 'email-subject';
+    sub.textContent = email.subject;
+
+    var time = document.createElement('div');
+    time.className = 'email-time';
+    time.textContent = email.time;
+
+    meta.appendChild(to);
+    meta.appendChild(sub);
+    wrap.appendChild(av);
+    wrap.appendChild(meta);
+    wrap.appendChild(time);
+    return wrap;
+  }
+
+  /* ── DOM: empty state ───────────────────────────────────── */
+  function makeEmpty(icon, text) {
+    var wrap = document.createElement('div');
+    wrap.className = 'empty-state';
+    var ico = document.createElement('div');
+    ico.className = 'empty-icon';
+    ico.textContent = icon;
+    var p = document.createElement('p');
+    p.textContent = text;
+    wrap.appendChild(ico);
+    wrap.appendChild(p);
+    return wrap;
+  }
+
+  /* ── Bootstrap ──────────────────────────────────────────── */
+  init();
+
+}());
+</script>
+
+</body>
+</html>
